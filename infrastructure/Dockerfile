@@ -21,9 +21,9 @@ EXPOSE 22
 
 WORKDIR /root
 RUN mkdir .ssh
-COPY authorized_keys .ssh/
+COPY --chown=root:root authorized_keys .ssh/
 
-# Start OS
+# Start SSH client and container
 
 ENTRYPOINT service ssh start && bash
 
