@@ -3,3 +3,4 @@
 terraform.tfstate*
 authorized_keys
 *.swp
+terraform.tfvars
