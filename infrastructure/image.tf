@@ -1,4 +1,4 @@
-resource "null_resource" "create_authorized_keys" {
+resource "null_resource" "authorized_keys" {
   provisioner "local-exec" {
     command = "cat ~/.ssh/id_rsa.pub > authorized_keys"
     when    = create
@@ -11,10 +11,10 @@ resource "null_resource" "create_authorized_keys" {
 
 resource "docker_image" "minislurm_blank" {
   name       = "minislurm-blank"
-  depends_on = [null_resource.create_authorized_keys]
+  depends_on = [null_resource.authorized_keys]
   build {
-    context      = "."
-    dockerfile   = "Dockerfile"
-    force_remove = true
+    context    = "."
+    tag        = ["minislurm-blank:latest"]
+    dockerfile = "Dockerfile"
   }
 }
