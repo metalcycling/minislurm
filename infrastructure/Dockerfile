@@ -11,7 +11,20 @@ FROM ubuntu:22.04
 RUN apt update
 RUN apt upgrade -y
 RUN apt install -y \
-    openssh-server
+    openssh-server \
+    vim \
+    screen \
+    curl
+
+# Setup bash shell
+
+WORKDIR /root
+COPY --chown=root:root .bash_aliases /root
+COPY --chown=root:root .bashrc /root
+COPY --chown=root:root .inputrc /root
+COPY --chown=root:root .screenrc /root
+COPY --chown=root:root .vimrc /root
+COPY --chown=root:root .vim /root/.vim
 
 # Expose SSH port
 
@@ -19,7 +32,6 @@ EXPOSE 22
 
 # Create SSH credentials
 
-WORKDIR /root
 RUN mkdir .ssh
 COPY --chown=root:root authorized_keys .ssh/
 
