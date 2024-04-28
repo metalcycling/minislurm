@@ -1,6 +1,7 @@
+*.swp
 .terraform
 .terraform.lock.hcl
+terraform.tfvars
 terraform.tfstate*
 authorized_keys
-*.swp
-terraform.tfvars
+inventory.ini
