@@ -1,0 +1,289 @@
+*ipython-cell.txt*  run code cells in IPython
+*ipython-cell*
+
+This plugin allows you to easily run Python code from Vim in IPython,
+including individual code cells similar to Jupyter notebooks and MATLAB.
+
+==============================================================================
+USAGE                                                     *ipython-cell-usage*
+
+Before using ipython-cell, familiarize yourself with the |slime| plugin.
+
+ipython-cell does not add any custom mappings. Instead, it is up to the user
+to define custom mappings for the commands below. For example, you can add the
+following to your .vimrc: >
+
+    nmap <Leader>r :IPythonCellRun<CR>
+    nmap <Leader>R :IPythonCellRunTime<CR>
+    nmap <Leader>c :IPythonCellExecuteCell<CR>
+    nmap <Leader>C :IPythonCellExecuteCellJump<CR>
+    nmap <Leader>l :IPythonCellClear<CR>
+    nmap <Leader>x :IPythonCellClose<CR>
+    nmap <Leader>p :IPythonCellPrevCommand<CR>
+    nmap <Leader>q :IPythonCellRestart<CR>
+
+`<Leader>` is `\` (backslash) by default. The mappings above map `\r` to run
+the current script in IPython, `\R` to run and time the script, `\c` to
+execute only the current code cell, `\C` to execute the current code cell and
+jump to the next cell, `\l` to clear the IPython screen, and `\x` to close all
+Matplotlib figure windows.
+
+You may also want to add something like the following to easily navigate
+between code cells: >
+
+    nmap [c :IPythonCellPrevCell<CR>
+    nmap ]c :IPythonCellNextCell<CR>
+
+Code cells are by default defined by special text in the code, referred to as
+tags. By default the plugin will interpret lines containing `# %%`, `#%%`,
+`# <codecell>`, or `##` as code cell headers.
+
+It is also possible to use Vim marks (see |mark|) as cell separators by adding
+the following to your vimrc: >
+
+    let g:ipython_cell_delimit_cells_by = 'marks'
+
+Note that the cell execution feature copies your code to the system clipboard.
+You may want to avoid using this feature if your code contains sensitive data.
+
+==============================================================================
+COMMANDS                                               *ipython-cell-commands*
+
+                                                             *:IPythonCellRun*
+:IPythonCellRun                     Run whole script in IPython.
+
+                                                         *:IPythonCellRunTime*
+:IPythonCellRunTime                 Run whole script in IPython and time the
+                                    execution.
+
+                                                     *:IPythonCellExecuteCell*
+:IPythonCellExecuteCell             Execute a single code cell in IPython.
+
+                                                 *:IPythonCellExecuteCellJump*
+:IPythonCellExecuteCellJump         Execute a single code cell in IPython, and
+                                    move cursor to the next cell.
+
+                                              *:IPythonCellExecuteCellVerbose*
+:IPythonCellExecuteCellVerbose      Print and execute a single code cell in
+                                    IPython.
+
+                                          *:IPythonCellExecuteCellVerboseJump*
+:IPythonCellExecuteCellVerboseJump  Print and execute a single code cell in
+                                    IPython, and move cursor to the next cell.
+
+                                                           *:IPythonCellClear*
+:IPythonCellClear                   Clear IPython screen.
+
+                                                           *:IPythonCellClose*
+:IPythonCellClose                   Close all Matplotlib figure windows. This
+                                    command assumes that the
+                                    `matplotlib.pyplot` module is imported as
+                                    `plt` in IPython.
+
+:IPythonCellPrevCell                                    *:IPythonCellPrevCell*
+                                    Jump to the previous cell header.
+
+:IPythonCellNextCell                                    *:IPythonCellNextCell*
+                                    Jump to the next cell header.
+
+:IPythonCellPrevCommand                              *:IPythonCellPrevCommand*
+                                    Run previous command.
+
+:IPythonCellRestart                                      *:IPythonCellRestart*
+                                    Restart IPython.
+:IPythonCellInsertAbove                              *:IPythonCellInsertAbove*
+                                    Insert a cell header tag above the current
+                                    cell.
+:IPythonCellInsertBelow                              *:IPythonCellInsertBelow*
+                                    Insert a cell header tag below the current
+                                    cell.
+:IPythonCellToMarkdown                                *:IPythonCellToMarkdown*
+                                    Convert current code cell into a markdown
+                                    cell.
+
+==============================================================================
+CONFIGURATION                                     *ipython-cell-configuration*
+
+The following configuration options allow you to specify how cells are
+defined.
+
+                                               *ipython_cell_delimit_cells_by*
+g:ipython_cell_delimit_cells_by     Delimit cells by special tags in the code
+                                    (`'tags'`) or Vim marks (`'marks'`).
+                                    Default: `'tags'`
+
+                                                            *ipython-cell-tag*
+g:ipython_cell_tag                  String or list of strings to specify what
+                                    kind of tags to use to mark the boundary
+                                    between cells.
+                                    Default: `['# %%', '#%%', '# <codecell>', '##']`
+
+                                                          *ipython-cell-regex*
+g:ipython_cell_regex                If `1`, tags specified by
+                                    `g:ipython_cell_tag` are interpreted as
+                                    Python regex patterns, otherwise they are
+                                    interpreted as literal strings.
+                                    Default: `0`
+
+                                                    *ipython-cell-valid-marks*
+g:ipython_cell_valid_marks          String with marks to use to mark the
+                                    boundary between cells. Used only if
+                                    `g:ipython_cell_delimit_cells_by` is set
+                                    to  `'marks'`.
+                                    Default: `'abcdefghijklmnopqrstuvqxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'`
+
+                                                   *ipython-cell-cell-command*
+g:ipython_cell_cell_command         Command to run for executing cells.
+                                    Default: `'%paste -q'`
+
+                                                    *ipython-cell-run-command*
+g:ipython_cell_run_command`         Command to run for executing scripts.
+                                    Supports placeholders `{options}` for
+                                    flags passed to the `IPythonCellRun`
+                                    function, such as `-t` for
+                                    IPythonCellRunTime, and `{filepath}` for
+                                    the path to the current buffer.
+                                    Default: `'%run {options} "{filepath}"'`
+
+                                           *ipython-cell-prefer-external-copy*
+g:ipython_cell_prefer_external_copy Set to `1` to prefer using an external
+                                    program to copy to system clipboard rather
+                                    than relying on Vim/Neovim yank.
+                                    Default: `0`
+
+                                                *ipython-cell-highlight-cells*
+g:ipython_cell_highlight_cells       Set to `0` to disable highlighting of
+                                     cell headers defined using tags.
+                                     Default: `1`
+
+                                             *ipython-cell-highlight-cells-ft*
+g:ipython_cell_highlight_cells_ft    A list of filetypes for which cell
+                                     headers will be highlighted if
+                                     `g:ipython_cell_highlight_cells` is
+                                     enabled.
+                                     Default: `['python']`
+
+                                              *ipython-cell-send-cell-headers*
+g:ipython_cell_send_cell_headers     If cells are delimited by tags,
+                                     separately send the cell header before
+                                     the cell contents.
+                                     Default: `0`
+
+                                                     *ipython-cell-insert-tag*
+g:ipython_cell_insert_tag            The cell tag inserted by
+                                     `IPythonCellInsertAbove` and
+                                     `IPythonCellInsertBelow`.
+                                     Default: `# %% `
+
+                                                    *ipython-cell-send-ctrl-u*
+g:ipython_cell_send_ctrl_u           Send Ctrl-U to clear the line before
+                                     sending commands to IPython. Set to `0`
+                                     if this is not supported by your shell.
+                                     Default: `1`
+
+                                                *ipython-cell-highlight-group*
+By default, cell headers defined using tags are highlighted using the
+`IPythonCell` highlight group.
+
+==============================================================================
+FAQ                                                         *ipython-cell-faq*
+
+Q: I have installed the plugin but get 'Not an editor command'. Why? ~
+A: If the error persists after restarting Vim/Neovim, make sure that your
+editor has support for Python by running the following commands in the editor:
+
+    :echo has('python')
+    :echo has('python3')
+
+At least one of the commands should return `1`. If they both return `0`,
+you need to set up your editor with Python support. In the case of Neovim, that
+means installing the `pynvim` Python module, see
+https://neovim.io/doc/user/provider.html#provider-python
+
+Q: The 'IPythonCellExecuteCell' and 'IPythonCellExecuteCellJump' commands ~
+do not work, but other commands such as IPythonCellRun work. Why? ~
+A: First, make sure you have Tkinter installed (otherwise you will get an
+error message) and a supported clipboard program, see README.
+Also make sure your `DISPLAY` variable is correct, see next question.
+If you cannot install the requirements but still want to use the cell execution
+feature, you can try the verbose versions 'IPythonCellExecuteCellVerbose' and
+'IPythonCellExecuteCellVerboseJump'.
+
+Q: 'IPythonCellExecuteCell' and 'IPythonCellExecuteCellJump' do not execute ~
+the correct code cell, or I get an error about 'can't open display', ~
+'could not open display', 'could not connect to display', or something ~
+similar, what do I do? ~
+A: Make sure your DISPLAY environment variable is correct, especially after
+re-attaching a screen or tmux session. In tmux you can update the DISPLAY
+variable with the following command:
+
+    eval $(tmux showenv -s DISPLAY)
+
+Q: Should I use marks or tags to define cells? ~
+A: This depends on personal preference. Tags are similar to `%%` in MATLAB
+and `# %%` in e.g. Jupyter Notebooks and Spyder. They become a part of your
+code and can also be shared with others, making them ideal if you want more
+persistent cells. Marks, on the other hand, are more transient and can be
+changed without triggering changes in your code, which can be nice if you
+change your cells often and your code is under version control.
+
+Q: How do I show the marks in the left-most column? ~
+A: Use the vim-signature plugin:
+    https://github.com/kshenoy/vim-signature
+
+Q: How to send only the current line or selected lines to IPython? ~
+A: Use the features provided by vim-slime. The default mapping `C-c C-c` (hold
+down Ctrl and tap the C key twice) will send the current paragraph or the
+selected lines to IPython. See |slime| for more information.
+
+Q: Why do I get "name 'plt' is not defined" when I try to close figures? ~
+A: ipython-cell assumes that you have imported `matplotlib.pyplot` as `plt` in
+IPython. If you prefer to import `matplotlib.pyplot` differently, you can
+achieve the same thing using vim-slime, for example by adding the following to
+your .vimrc: >
+
+    nmap <Leader>x :SlimeSend1 matplotlib.pyplot.close('all')<CR>
+
+Q: How can I send other commands to IPython, e.g. '%who'? ~
+A: You can easily send arbitary commands to IPython using the `:SlimeSend1`
+command provided by vim-slime, e.g. `:SlimeSend1 %who`, and map these commands
+to key combinations.
+
+Q: The `IPythonCellExecuteCell` command does not work, it seems to run the ~
+wrong cell. ~
+A: Try to add the following to your .vimrc: >
+
+    let g:ipython_cell_prefer_external_copy = 1
+
+Make sure you have a supported clipboard program installed (see README).
+
+Q: Why isn't this plugin specific to Python by default? In other words, why ~
+do I have to add all this extra stuff to make this plugin Python-specific? ~
+A: This plugin was created with Python and IPython in mind, but I don't want
+to restrict the plugin to Python by design. Instead, I have included examples
+of how to use plugin managers to specify that the plugin should be loaded only
+for Python files and how to create Python-specific mappings. If someone wants
+to use this plugin for other filetypes, they can easily do so.
+
+Q: Why is this plugin written in Python instead of pure Vimscript? ~
+A: Because I feel more comfortable with Python and don't have the motivation
+to learn Vimscript for this plugin. If someone implements a pure Vimscript
+version, I would be happy to consider to merge it.
+
+Q: I get an error (e.g. SyntaxError) because the plugin inserts `^U` before ~
+the command, what should I do? ~
+
+Try to add the following to your configuration file:
+
+    let g:ipython_cell_send_ctrl_u = 0
+
+==============================================================================
+ABOUT                                                     *ipython-cell-about*
+
+Author: Hans Chen (contact@hanschen.org)
+
+The latest versions can be found at
+    http://github.com/hanschen/vim-ipython-cell
+
+This plugin was originally inspired by
+    https://github.com/eldridgejm/tslime_ipython
