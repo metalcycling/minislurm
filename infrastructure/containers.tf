@@ -30,11 +30,18 @@ resource "local_file" "inventory" {
   }
 }
 
-resource "null_resource" "known_hosts_cleanup" {
-  for_each = { for idx, ip in concat([docker_container.head.network_data[0].ip_address], docker_container.compute[*].network_data[0].ip_address) : format("ip-%d", idx) => ip }
+resource "local_file" "nodes_ips" {
+  content         = format("%s\n%s\n", docker_container.head.network_data[0].ip_address, join("\n", docker_container.compute[*].network_data[0].ip_address))
+  filename        = ".nodes_ips.dat"
+  file_permission = "0664"
 
   provisioner "local-exec" {
-    command = "ssh-keygen -f ~/.ssh/known_hosts -R ${each.key}"
+    command = "while read container_ip; do ssh-keygen -f ~/.ssh/known_hosts -R $container_ip; done < ${self.filename};"
+    when    = destroy
+  }
+
+  provisioner "local-exec" {
+    command = "rm -f ${self.filename}"
     when    = destroy
   }
 }
