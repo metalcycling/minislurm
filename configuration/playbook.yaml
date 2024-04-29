@@ -33,3 +33,40 @@
     - openssh_keypair:
         path: ~/.ssh/id_rsa
       register: keypair
+
+    - fetch:
+        src: ~/.ssh/id_rsa.pub
+        dest: public_keys
+
+- name: Aggregate public keys into a single file
+  hosts: localhost
+  tasks:
+    - ansible.builtin.command:
+        cmd: bash -c "cat ~/.ssh/id_rsa.pub > authorized_keys && cat $(find . -name *.pub) >> authorized_keys"
+
+- name: Copy public keys to the nodes so they can talk to each other
+  hosts: all
+  tasks:
+    - ansible.builtin.copy:
+        src: authorized_keys
+        dest: ~/.ssh
+        owner: root
+        group: root
+        mode: 0664
+
+- name: Add trusted connections to the known_hosts file in all the nodes
+  hosts: all
+  tasks:
+    - ansible.builtin.copy:
+        src: ../infrastructure/.nodes_ips.dat
+        dest: ~/
+        owner: root
+        group: root
+        mode: 0664
+
+    - ansible.builtin.command:
+        cmd: bash -c "for node_ip in $(cat .nodes_ips.dat); do ssh -o StrictHostKeyChecking=no root@${node_ip} echo 'Connected'; done;"
+
+    - ansible.builtin.file:
+        path: ~/.nodes_ips.dat
+        state: absent
