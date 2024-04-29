@@ -5,3 +5,4 @@ terraform.tfvars
 terraform.tfstate*
 authorized_keys
 inventory.ini
+.nodes_ips.dat
