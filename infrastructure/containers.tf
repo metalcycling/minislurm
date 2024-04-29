@@ -6,6 +6,10 @@ resource "docker_container" "head" {
   stdin_open = true
   start      = var.start_nodes
   must_run   = false
+  volumes {
+    container_path = "/data"
+    host_path      = "${path.cwd}/../scratch"
+  }
 }
 
 resource "docker_container" "compute" {
@@ -15,6 +19,10 @@ resource "docker_container" "compute" {
   stdin_open = true
   start      = var.start_nodes
   must_run   = false
+  volumes {
+    container_path = "/data"
+    host_path      = "${path.cwd}/../scratch"
+  }
 }
 
 # Inventory files
