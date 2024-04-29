@@ -1,0 +1,35 @@
+- name: Upgrading packages in the nodes
+  hosts: all
+  tasks:
+    - name: Upgrade packages
+      apt:
+        force_apt_get: yes
+        upgrade: dist
+      become: yes
+      become_method: sudo
+
+- name: Installing packages in the nodes
+  hosts: all
+  tasks:
+    - name: Install packages
+      apt:
+        pkg:
+          - vim
+          - build-essential
+          - screen
+          - curl
+          - wget
+          - git
+          - python3
+          - python3-pip
+          - mpich
+          - iputils-ping
+        state: latest
+        update_cache: true
+
+- name: Generate SSH key pairs
+  hosts: all
+  tasks:
+    - openssh_keypair:
+        path: ~/.ssh/id_rsa
+      register: keypair
