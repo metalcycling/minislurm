@@ -1,3 +1,4 @@
 *.swp
 public_keys
 authorized_keys
+munge
