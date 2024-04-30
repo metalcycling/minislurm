@@ -24,6 +24,7 @@
           - python3-pip
           - mpich
           - iputils-ping
+          - munge
         state: latest
         update_cache: true
 
@@ -70,3 +71,27 @@
     - file:
         path: ~/.nodes_ips.dat
         state: absent
+
+- name: Get a reference MUNGE key taken from the head node
+  hosts: head
+  tasks:
+    - fetch:
+        src: /etc/munge/munge.key
+        dest: munge
+      register: munge
+
+- name: Copy reference MUNGE key to all the nodes
+  hosts: all
+  tasks:
+    - copy:
+        src: "{{ hostvars[groups.head[0]].munge.dest }}"
+        dest: /etc/munge
+        owner: munge
+        group: munge
+        mode: 0600
+
+- name: Start the MUNGE daemon
+  hosts: all
+  tasks:
+    - command:
+        cmd: bash -c "/etc/init.d/munge stop && /etc/init.d/munge start"
