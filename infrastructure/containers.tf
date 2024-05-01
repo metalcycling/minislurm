@@ -3,6 +3,7 @@
 resource "docker_container" "head" {
   name       = "head"
   image      = docker_image.minislurm_blank.image_id
+  hostname   = "head"
   stdin_open = true
   start      = var.start_nodes
   must_run   = false
@@ -16,6 +17,7 @@ resource "docker_container" "compute" {
   count      = var.num_nodes
   name       = "compute-${count.index}"
   image      = docker_image.minislurm_blank.image_id
+  hostname   = "compute-${count.index}"
   stdin_open = true
   start      = var.start_nodes
   must_run   = false
