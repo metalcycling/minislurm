@@ -1,3 +1,5 @@
+# Ubuntu packages
+
 - name: Upgrading packages in the nodes
   hosts: all
   tasks:
@@ -22,76 +24,38 @@
           - git
           - python3
           - python3-pip
-          - mpich
           - iputils-ping
           - munge
         state: latest
         update_cache: true
 
-- name: Generate SSH key pairs
-  hosts: all
-  tasks:
-    - openssh_keypair:
-        path: ~/.ssh/id_rsa
-      register: keypair
+# DNS with node names
 
-    - fetch:
-        src: ~/.ssh/id_rsa.pub
-        dest: public_keys
-
-- name: Aggregate public keys into a single file
+- name: Get IPs of the nodes and build DNS
   hosts: localhost
   tasks:
     - command:
-        cmd: bash -c "cat ~/.ssh/id_rsa.pub > authorized_keys && cat $(find . -name *.pub) >> authorized_keys"
-
-- name: Copy public keys to the nodes so they can talk to each other
-  hosts: all
-  tasks:
-    - copy:
-        src: authorized_keys
-        dest: ~/.ssh
-        owner: root
-        group: root
-        mode: 0664
-
-- name: Add trusted connections to the known_hosts file in all the nodes
-  hosts: all
-  tasks:
-    - copy:
-        src: ../infrastructure/.nodes_ips.dat
-        dest: ~/
-        owner: root
-        group: root
-        mode: 0664
+        cmd: bash -c "head -n 1 ../infrastructure/.nodes_ips.dat"
+      register: head_ip
 
     - command:
-        cmd: bash -c "for node_ip in $(cat .nodes_ips.dat); do ssh -o StrictHostKeyChecking=no root@${node_ip} echo 'Connected'; done;"
+        cmd: bash -c "sed 1d ../infrastructure/.nodes_ips.dat"
+      register: compute_ips
 
-    - file:
-        path: ~/.nodes_ips.dat
-        state: absent
+    - command:
+        cmd: bash -c "seq 0 $(wc -l ../infrastructure/.nodes_ips.dat | awk '{ print $1 - 1 }')"
+      register: compute_indices
 
-- name: Get a reference MUNGE key taken from the head node
-  hosts: head
-  tasks:
-    - fetch:
-        src: /etc/munge/munge.key
-        dest: munge
-      register: munge
-
-- name: Copy reference MUNGE key to all the nodes
+- name: Update hosts file
   hosts: all
-  tasks:
-    - copy:
-        src: "{{ hostvars[groups.head[0]].munge.dest }}"
-        dest: /etc/munge
-        owner: munge
-        group: munge
-        mode: 0600
-
-- name: Start the MUNGE daemon
-  hosts: all
+  vars:
+    head_ip: "{{ hostvars['localhost'].head_ip.stdout }}"
+    compute_ips: "{{ hostvars['localhost'].compute_ips.stdout | split }}"
+    compute_indices: "{{ hostvars['localhost'].compute_indices.stdout | split }}"
   tasks:
     - command:
-        cmd: bash -c "/etc/init.d/munge stop && /etc/init.d/munge start"
+        cmd: bash -c "echo '{{ head_ip }}      head' >> /etc/hosts"
+
+    - command:
+        cmd: bash -c "echo '{{ item[1] }}      compute-{{ item[0] }}' >> /etc/hosts"
+      loop: "{{ compute_indices | zip(compute_ips) }}"
