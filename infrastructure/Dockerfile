@@ -11,8 +11,18 @@ FROM ubuntu:22.04
 RUN apt update
 RUN apt upgrade -y
 RUN apt install -y \
+    sudo \
     openssh-server \
     vim
+
+# Default skeleton for users
+
+COPY --chown=root:root .bash_aliases /etc/skel
+COPY --chown=root:root .bashrc /etc/skel
+COPY --chown=root:root .inputrc /etc/skel
+COPY --chown=root:root .screenrc /etc/skel
+COPY --chown=root:root .vimrc /etc/skel
+COPY --chown=root:root .vim /etc/skel/.vim
 
 # Setup bash shell
 
