@@ -59,3 +59,86 @@
     - command:
         cmd: bash -c "echo '{{ item[1] }}      compute-{{ item[0] }}' >> /etc/hosts"
       loop: "{{ compute_indices | zip(compute_ips) }}"
+
+# SLURM setup
+
+- name: Create admin account
+  hosts: all
+  tasks:
+    - group:
+        name: admin
+        state: present
+
+    - user:
+        name: admin
+        password: "{{ 'admin' | password_hash('sha512') }}"
+        shell: /bin/bash
+        home: /home/admin
+        create_home: true
+        group: admin
+        groups: sudo
+        append: true
+
+    - copy:
+        dest: /etc/sudoers.d/admin
+        content: "admin ALL=(ALL) NOPASSWD:ALL"
+        mode: 0440
+
+    - file:
+        path: /home/admin/.ssh
+        state: directory
+        owner: admin
+        group: admin
+        mode: 0755
+
+    - copy:
+        src: /home/metalcycling/.ssh/id_rsa.pub
+        dest: /home/admin/.ssh/authorized_keys
+        owner: admin
+        group: admin
+        mode: 0664
+
+- name: Install SLURM
+  hosts: all
+  vars:
+    compute_ips: "{{ hostvars['localhost'].compute_ips.stdout | split }}"
+  tasks:
+    - apt:
+        pkg:
+          - slurmd
+          - slurm-client
+          - slurmctld
+        state: latest
+        update_cache: true
+
+    - copy:
+        src: "{{ item }}"
+        dest: /etc/slurm
+        mode: 0664
+      loop:
+        - slurm.conf
+        - cgroup.conf
+
+    - command:
+        cmd: bash -c "sed -i '/NodeName/c\NodeName=compute-[0-{{ compute_ips | length - 1 }}] CPUs=1 State=UNKNOWN' /etc/slurm/slurm.conf"
+
+    - command:
+        cmd: bash -c "sed -i '/PartitionName/c\PartitionName=cluster Nodes=compute-[0-{{ compute_ips | length - 1 }}] Default=YES MaxTime=INFINITE State=UP' /etc/slurm/slurm.conf"
+
+- name: Start SLURM services on the head node
+  hosts: head
+  tasks:
+    - command:
+        cmd: bash -c "service munge start"
+
+    - command:
+        cmd: bash -c "service slurmctld start"
+
+- name: Start SLURM services on the compute nodes
+  hosts: compute
+  tasks:
+    - command:
+        cmd: bash -c "service munge start"
+
+    - command:
+        cmd: bash -c "slurmd -N $(hostname)"
