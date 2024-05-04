@@ -25,7 +25,6 @@
           - python3
           - python3-pip
           - iputils-ping
-          - munge
         state: latest
         update_cache: true
 
@@ -59,6 +58,81 @@
     - command:
         cmd: bash -c "echo '{{ item[1] }}      compute-{{ item[0] }}' >> /etc/hosts"
       loop: "{{ compute_indices | zip(compute_ips) }}"
+
+# Connect all-to-all
+
+- name: Generate SSH key pairs
+  hosts: all
+  tasks:
+    - openssh_keypair:
+        path: ~/.ssh/id_rsa
+      register: keypair
+
+    - fetch:
+        src: ~/.ssh/id_rsa.pub
+        dest: public_keys
+
+- name: Aggregate public keys into a single file
+  hosts: localhost
+  tasks:
+    - command:
+        cmd: bash -c "cat ~/.ssh/id_rsa.pub > authorized_keys && cat $(find . -name *.pub) >> authorized_keys"
+
+- name: Copy public keys to the nodes so they can talk to each other
+  hosts: all
+  tasks:
+    - copy:
+        src: authorized_keys
+        dest: ~/.ssh
+        owner: root
+        group: root
+        mode: 0664
+
+- name: Add trusted connections to the known_hosts file in all the nodes
+  hosts: all
+  tasks:
+    - copy:
+        src: ../infrastructure/.nodes_ips.dat
+        dest: ~/
+        owner: root
+        group: root
+        mode: 0664
+
+    - command:
+        cmd: bash -c "for node_ip in $(cat .nodes_ips.dat); do ssh -o StrictHostKeyChecking=no root@${node_ip} echo 'Connected'; done;"
+
+    - file:
+        path: ~/.nodes_ips.dat
+        state: absent
+
+# MUNGE setup
+
+- name: Install MUNGE
+  hosts: all
+  tasks:
+    - apt:
+        pkg:
+          - munge
+        state: latest
+        update_cache: true
+
+- name: Get a reference MUNGE key taken from the head node
+  hosts: head
+  tasks:
+    - fetch:
+        src: /etc/munge/munge.key
+        dest: munge
+      register: munge
+
+- name: Copy reference MUNGE key to all the nodes
+  hosts: all
+  tasks:
+    - copy:
+        src: "{{ hostvars[groups.head[0]].munge.dest }}"
+        dest: /etc/munge
+        owner: munge
+        group: munge
+        mode: 0600
 
 # SLURM setup
 
@@ -108,6 +182,7 @@
           - slurmd
           - slurm-client
           - slurmctld
+          - munge
         state: latest
         update_cache: true
 
@@ -124,6 +199,13 @@
 
     - command:
         cmd: bash -c "sed -i '/PartitionName/c\PartitionName=cluster Nodes=compute-[0-{{ compute_ips | length - 1 }}] Default=YES MaxTime=INFINITE State=UP' /etc/slurm/slurm.conf"
+
+    - file:
+        path: /var/spool/slurmd
+        state: directory
+        owner: admin
+        group: admin
+        mode: 0755
 
 - name: Start SLURM services on the head node
   hosts: head
